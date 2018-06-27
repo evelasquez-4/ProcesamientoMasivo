@@ -1,0 +1,5 @@
+register '/data/2018/uhadoop/fblum/piggybank-0.17.0.jar'
+DEFINE XPath org.apache.pig.piggybank.evaluation.xml.XPath();
+A =  LOAD '/uhadoop2018/fblum/Users.xml' using org.apache.pig.piggybank.storage.XMLLoader('row') as (x:chararray);
+B = FOREACH A GENERATE XPath(x, 'row/@DisplayName'), XPath(x, 'row/@Reputation');
+dump B;
