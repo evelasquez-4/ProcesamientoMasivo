@@ -3,39 +3,44 @@ package org.mdp.hadoop.cli;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamConstants;
-import javax.xml.stream.XMLStreamReader;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.mdp.hadoop.cli.XmlFileSortTags.*;
 import org.w3c.dom.*;
 import org.w3c.dom.Document;
+
 
 
 public class XmlFileMapReduce
 {
 	
-	public static class XmlFileMap extends Mapper<LongWritable, Text, Text, NullWritable>
+	
+	public static class XmlFileMap extends Mapper<Object, Text, Text, IntWritable>
 	{
+		private final IntWritable one = new IntWritable(1);
+		private Text word = new Text();
+		
+		@SuppressWarnings("deprecation")
 		@Override
-		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException
+		public void map(Object key, Text value, Context context) throws IOException, InterruptedException
 		{          
-     
-            try {
-            	
-            		InputStream is = new ByteArrayInputStream(value.toString().getBytes());
-                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();           	
+			try {
+				
+				InputStream is = new ByteArrayInputStream(value.toString().getBytes());
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();   
+                dbFactory.setNamespaceAware(true);
             		
 				DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 				Document doc = dBuilder.parse(is);
@@ -47,40 +52,54 @@ public class XmlFileMapReduce
 				for(int temp = 0;temp<nList.getLength();temp++)
 				{
 					Node nNode = nList.item(temp);
-					//System.out.println("\nCurrent Element :" + nNode.getNodeName());
+
+					String tags = "";
 					
-					String id = ( nNode.getAttributes().getNamedItem("DisplayName").getNodeValue() ).equals(null) ? 
-							"null":nNode.getAttributes().getNamedItem("DisplayName").getNodeValue();
-					String reputation = ( nNode.getAttributes().getNamedItem("Reputation").getNodeValue() ).equals(null) ?
-							"null":nNode.getAttributes().getNamedItem("Reputation").getNodeValue();
-					String accountId = ( nNode.getAttributes().getNamedItem("AccountId").getNodeValue() ).equals(null)?
-							"null": nNode.getAttributes().getNamedItem("AccountId").getNodeValue();
-					
-					context.write(new Text(id+","+reputation), NullWritable.get());
-					
-//					if(nNode.getNodeType() == Node.ELEMENT_NODE)
-//					{
-//						Element eElement =  (Element) nNode;
-//						
-//						String name = eElement.getElementsByTagName("name").item(0).getTextContent();
-//						System.out.println(name);
-//						String price = eElement.getElementsByTagName("price").item(0).getTextContent();
-//	                    String calories = eElement.getElementsByTagName("calories").item(0).getTextContent();
-//	                     
-//	                    String o = name+","+price+","+","+calories;
-//	                    context.write(new Text(name), NullWritable.get());
-//	                     
-//					}
-            	
-				}
-            }catch (Exception e) {
-				// TODO: handle exception
-            		System.out.println(e);
+					if(new Integer(nNode.getAttributes().getNamedItem("PostTypeId").getNodeValue()).intValue() == 1 )
+					{
+						
+						 tags = ( nNode.getAttributes().getNamedItem("Tags").getNodeValue() ).equals(null) ? 
+								"null":nNode.getAttributes().getNamedItem("Tags").getNodeValue();
+						 
+						 String [] splitTags = tags.replaceAll("<", "").replaceAll(">", ";").trim().split(";");
+						 
+						 for(String s : splitTags)
+						 { 
+							 if(s.length() >= 1)
+								 word.set(s.trim());
+							 
+							 
+							 context.write(word,one);
+						 }
+						 
+					}
+				}   
+				
+			} catch (Exception e) {
+				System.out.println(e);
 			}
 			
          }  
 	}
 	
+	public static class XmlFileReduce extends Reducer<Text, IntWritable, Text, IntWritable>
+	{
+		@Override
+		public void reduce(Text key, Iterable<IntWritable> values,
+				Context output) throws IOException, InterruptedException {
+			int sum = 0;
+			for(IntWritable value: values) {
+				sum += value.get();
+			}
+			output.write(key, new IntWritable(sum));
+		}
+	}
+	
+			
+	
+	
+	
+		
 	
 
 	public static void main(String[] args) throws Exception {
@@ -89,32 +108,57 @@ public class XmlFileMapReduce
 			Configuration conf = new Configuration();
 			
 			String[] arg = new GenericOptionsParser(conf,args).getRemainingArgs();
-		
-		    conf.set("xmlinput.start", "<users>");
-		    conf.set("xmlinput.end", "</users>");
 			
 			
-			Job job = new Job(conf,"map reduce");			
-			job.setJarByClass(XmlFileMapReduce.class);
-			job.setMapperClass(XmlFileMap.class);
+		    String inputLocation = arg[0];
+			String outputLocation = arg[1]+"tmp1";
 			
-			job.setNumReduceTasks(0);
-			
-			job.setInputFormatClass(XmlInputFormat.class);
-			
-		    job.setMapOutputKeyClass(Text.class);	
-		    //job.setMapOutputValueClass(LongWritable.class);
-		    job.setMapOutputValueClass(NullWritable.class);
+			String salida_1 = outputLocation;
+					
+		    Job job = Job.getInstance(new Configuration());
 		    
+		    FileInputFormat.setInputPaths(job, new Path(inputLocation));
+		    FileOutputFormat.setOutputPath(job, new Path(outputLocation));
+					    
 		    job.setOutputKeyClass(Text.class);
-		    //job.setOutputValueClass(LongWritable.class);
-		    job.setMapOutputValueClass(NullWritable.class);
-	
-		    FileInputFormat.addInputPath(job, new Path(args[0]));
-		    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		    job.setOutputValueClass(IntWritable.class);
+		    //job.setMapOutputValueClass(NullWritable.class);
+		    
+		    job.setMapOutputKeyClass(Text.class);	
+		    job.setMapOutputValueClass(IntWritable.class);
+		    //job.setMapOutputValueClass(NullWritable.class);
+		    
+			job.setMapperClass(XmlFileMap.class);
+			job.setCombinerClass(XmlFileReduce.class);
+			job.setReducerClass(XmlFileReduce.class);
+			
+//			job.setNumReduceTasks(0);
+			job.setInputFormatClass(XmlInputFormat.class);
 		   
-		
+		    job.setJarByClass(XmlFileMapReduce.class);	
 		    job.waitForCompletion(true);
+		    
+		    
+		    //job to sort results
+		    
+		    
+		    Job sortJob = Job.getInstance(new Configuration());
+		    
+		    sortJob.setMapOutputKeyClass(DescendingIntWritable.class);
+		    sortJob.setMapOutputValueClass(Text.class);
+			sortJob.setOutputKeyClass(Text.class);
+			sortJob.setOutputValueClass(IntWritable.class);
+		    
+			sortJob.setMapperClass(SortTagsCountsMapper.class); // no combiner this time!
+			sortJob.setReducerClass(SortTagsCountsReducer.class);
+
+			FileInputFormat.setInputPaths(sortJob, new Path(salida_1));
+			FileOutputFormat.setOutputPath(sortJob, new Path(arg[1]));
+
+			sortJob.setJarByClass(XmlFileMapReduce.class);
+			sortJob.waitForCompletion(true);
+		    
+		    
 		}catch (Exception e) {
 			// TODO: handle exception
 			System.out.println(e);

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="mdp-proj" basedir="." default="dist">
+<project name="projectjar" basedir="." default="dist">
    <property name="name" value="mdp-proj" />
    <property name="src" value="src" />
    <property name="version" value="" />

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="xmlhadoop/ref"/>
+	<classpathentry kind="src" path="xmlhadoop/src"/>
+	<classpathentry kind="lib" path="xmlhadoop/dist/mdp-proj.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/commons-cli-1.1.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/commons-logging-1.1.3.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/hadoop-common-2.3.0.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/hadoop-mapreduce-client-core-2.3.0.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/jdom-2.0.6-contrib.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/jdom-2.0.6-javadoc.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/jdom-2.0.6-junit.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/jdom-2.0.6-sources.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/jdom-2.0.6.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/lib/jaxen-1.1.6.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/lib/xalan/serializer-2.7.2.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/lib/xalan/xalan-2.7.2.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/lib/xercesImpl.jar"/>
+	<classpathentry kind="lib" path="xmlhadoop/lib/jdom-2.0.6/lib/xml-apis.jar"/>
+	<classpathentry kind="output" path="xmlhadoop/bin"/>
+</classpath>

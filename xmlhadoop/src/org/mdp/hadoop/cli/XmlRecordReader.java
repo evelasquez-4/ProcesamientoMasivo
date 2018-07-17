@@ -50,8 +50,8 @@ public class XmlRecordReader extends RecordReader<LongWritable, Text>
 	public void initialize(InputSplit arg0, TaskAttemptContext arg1) throws IOException, InterruptedException {
 		// TODO Auto-generated method stub
 		FileSplit fileSplit = (FileSplit)arg0;
-		String START_TAG_KEY ="<users>";
-		String END_TAG_KEY ="</users>";
+		String START_TAG_KEY ="<row";
+		String END_TAG_KEY ="/>";
 		
 		startTag = START_TAG_KEY.getBytes("utf-8");
 		endTag = END_TAG_KEY.getBytes("utf-8");

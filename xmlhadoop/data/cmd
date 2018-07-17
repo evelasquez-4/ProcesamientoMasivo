@@ -1,0 +1,1 @@
+hadoop jar /data/2018/uhadoop/evelasquez/xml/mdp-proj.jar XmlFileMapReduce /uhadoop2018/fblum/StackOverflow/3dprinting.meta.stackexchange.com/Posts.xml /uhadoop2018/evelasquez/pruebas/4

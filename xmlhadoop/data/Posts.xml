@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<posts>
+  <row Id="1" PostTypeId="1" AcceptedAnswerId="2" CreationDate="2015-10-29T15:56:52.933" Score="13" ViewCount="200" Body="&lt;p&gt;Estoy creando un servicio usando ASP.NET We
+bApi. Quiero añadir soporte para negociación del tipo de contenido basado en extensiones en el URI, así que he añadido lo siguiente al código de inicialización del servicio:&lt;/p&
+gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;public static class WebApiConfig&#xA;{&#xA;  public static void Register(HttpConfiguration config)&#xA;  {&#xA;    config.Formatters.JsonF
+ormatter.AddUriPathExtensionMapping(&quot;json&quot;, &quot;application/json&quot;);&#xA;    config.Formatters.XmlFormatter.AddUriPathExtensionMapping(&quot;xml&quot;, &quot;
+application/xml&quot;);&#xA;  }&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;Para que esto funcione necesito crear dos rutas para cada acción del controlador (estoy u
+sando exclusivamente enrutamiento basado en atributos):&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;[Route(&quot;item/{id}/details&quot;)]&#xA;[Route(&quot;item/{id}/details.{e
+xt}&quot;)]&#xA;[HttpGet]&#xA;public ItemDetail[] GetItemDetails(int id)&#xA;{&#xA;  return itemsService.GetItemDetails(id);&#xA;}&#xA;&#xA;[Route(&quot;item/{name}&quot;)]&#
+xA;[Route(&quot;item/{name}.{ext}&quot;)]&#xA;[HttpPost]&#xA;public int CreateItem(string name)&#xA;{&#xA;  return itemsService.Create(name);&#xA;}&#xA;&lt;/code&gt;&lt;/pre&
+gt;&#xA;&#xA;&lt;p&gt;Esto queda feo y hace que el código sea innecesariamente largo, así que investigué una forma de añadir la ruta con la extensión, automáticamente cuando se cre
+a la ruta normal. Como resultado desarrollé una implementación personalizada de &lt;code&gt;IDirectRouteProvider&lt;/code&gt; que puedo usar al registrar los atributos de ruta:
+&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;config.MapHttpAttributeRoutes(new AutomaticExtensionRouteProvider());&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;El código del 
+proveedor personalizado es:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;public class AutomaticExtensionRouteProvider : DefaultDirectRouteProvider&#xA;{&#xA;    protected overri
+de IReadOnlyList&amp;lt;RouteEntry&amp;gt; GetActionDirectRoutes(&#xA;      HttpActionDescriptor actionDescriptor,&#xA;      IReadOnlyList&amp;lt;IDirectRouteFactory&amp;gt; 
+factories,&#xA;      IInlineConstraintResolver constraintResolver)&#xA;    {&#xA;        var result = base.GetActionDirectRoutes(actionDescriptor, factories, constraintResolv
+er);&#xA;        var list = new List&amp;lt;RouteEntry&amp;gt;(result);&#xA;        foreach(var route in result.Where(r =&amp;gt; !r.Route.RouteTemplate.EndsWith(&quot;.{ext}
+&quot;)))&#xA;        {&#xA;            var newTemplate = route.Route.RouteTemplate + &quot;.{ext}&quot;;&#xA;            if (!result.Any(r =&amp;gt; r.Route.RouteTemplate ==
+ newTemplate))&#xA;            {&#xA;                var entry = new RouteEntry(null, new HttpRoute(newTemplate,&#xA;                    new HttpRouteValueDictionary(route.Ro
+ute.Defaults),&#xA;                    new HttpRouteValueDictionary(route.Route.Constraints),&#xA;                    new HttpRouteValueDictionary(route.Route.DataTokens)));&
+#xA;                list.Add(entry);&#xA;            }&#xA;        }&#xA;        return list.AsReadOnly();&#xA;    }&#xA;}&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;El 
+problema es que esto funciona bien... pero falla en un caso: &lt;strong&gt;cuando la última parte de la ruta es un parámetro sin restricciones&lt;/strong&gt;. Así pues, en el ej
+emplo anterior, la creación de rutas para &lt;code&gt;GetItemDetails&lt;/code&gt; funciona, pero para &lt;code&gt;CreateItem&lt;/code&gt; lanza lo siguiente:&lt;/p&gt;&#xA;&#x
+A;&lt;pre&gt;&lt;code&gt;System.InvalidOperationException: Multiple actions were found that match the request: &#xA;CreateItem on type FooBar.Api.Controllers.ItemsController&
+#xA;CreateItem on type FooBar.Api.Controllers.ItemsController&#xA;   at System.Web.Http.Controllers.ApiControllerActionSelector.ActionSelectorCacheItem.SelectAction(HttpContr
+ollerContext controllerContext)&#xA;   at System.Web.Http.Controllers.ApiControllerActionSelector.SelectAction(HttpControllerContext controllerContext)&#xA;&lt;/code&gt;&lt;/
+pre&gt;&#xA;&#xA;&lt;p&gt;Me imagino de donde puede venir el problema: una cadena arbitraria cumple los patrones &lt;code&gt;{name}&lt;/code&gt; y &lt;code&gt;{name}.{ext}&lt
+;/code&gt;, por lo que el motor de WebApi se atraganta al intentar seleccionar la ruta adecuada. &lt;strong&gt;Pero entonces, ¿por qué funciona cuando se especifican las dos ru
+tas explícitamente en atributos?&lt;/strong&gt; Por lo que yo entiendo, la ruta que yo creo en la clase &lt;code&gt;AutomaticExtensionRouteProvider&lt;/code&gt; es idéntica a l
+a que se crea explícitamente con un atributo (y si depuro veo que en efecto así es).&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Así pues, ¿qué está pasando aquí?&lt;/p&gt;&#xA;" OwnerUserId="23" L
+astEditorUserId="729" LastEditDate="2016-09-27T17:44:28.253" LastActivityDate="2016-09-27T17:44:28.253" Title="La creación manual de un alias de ruta con un DirectRouteProvide
+r personalizado causa un error &quot;Multiple actions were found that match the request&quot;" Tags="&lt;.net&gt;&lt;asp.net-web-api&gt;&lt;asp.net&gt;" AnswerCount="1" Comme
+ntCount="2" FavoriteCount="1" />
+  <row Id="2" PostTypeId="2" ParentId="1" CreationDate="2015-10-29T19:14:23.673" Score="12" Body="&lt;p&gt;He encontrado la solución.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Resulta que l
+as rutas tienen asignada una &lt;strong&gt;precedencia&lt;/strong&gt; numérica asignada, que el motor de enrutamiento de WebApi usa para decidir qué ruta usar en caso de confli
+cto. Las rutas creadas automáticamente para una misma acción siempre tienen una precedencia distinta, ¡pero la ruta que yo estaba creando manualmente tenía la misma precedencia q
+ue la ya existente!&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Así pues la solución es añadir lo siguiente a &lt;code&gt;GetActionDirectRoutes&lt;/code&gt;, inmediatamente después de &lt;code&gt;new RouteEntry&lt;/code&gt;:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;entry.Route.DataTokens[&quot;precedence&quot;] = &#xA;    ((decimal)route.Route.DataTokens[&quot;prec
+edence&quot;]) - 0.1M;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;" OwnerUserId="23" LastActivityDate="2015-10-29T19:14:23.673" CommentCount="2" />
+  <row Id="3" PostTypeId="1" AcceptedAnswerId="9" CreationDate="2015-10-29T23:54:31.947" Score="10" ViewCount="350" Body="&lt;p&gt;Luego de ver cierto código, me he dado cuent
+a que utilizan este estilo:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;aStr:=tblAcct.FieldByName('Name').Text;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;Parece trabajar 
+bien, pero yo había utilizado hasta ahora:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;aStr:=tblAcct.FieldByName('Name').AsString;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&g
+t;He utilizado ambos al cargar un TMemo y no parece haber diferencia alguna.&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;aMemo.Lines.Text:=tblAcct.FieldByName('History').Text;&
+#xA;aMemo.Lines.Text:=tblAcct.FieldByName('History').AsString;&#xA;&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;¿Hay alguna razón por la que deba utilizar una y no la otra? ¿Cuál 
+es esa razón?&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Normalmente, para un memo, utilizo:&lt;/p&gt;&#xA;&#xA;&lt;pre&gt;&lt;code&gt;aMemo.Lines.Assign(tblAcct.FieldByName('History'))&#xA;
+&lt;/code&gt;&lt;/pre&gt;&#xA;&#xA;&lt;p&gt;Y esto trabaja bien también.&lt;/p&gt;&#xA;" OwnerUserId="21" LastEditorUserId="20" LastEditDate="2015-12-03T16:24:56.370" LastActi
+vityDate="2015-12-18T20:19:25.133" Title="¿Es igual utilizar .AsString que .Text para obtener el valor de un campo de un DataSet?" Tags="&lt;delphi&gt;" AnswerCount="3" CommentCount="1" />
+  <row Id="4" PostTypeId="2" ParentId="3" CreationDate="2015-10-30T00:45:47.640" Score="3" Body="&lt;p&gt;&lt;code&gt;.AsString&lt;/code&gt; devuelve el mismo &quot;&lt;em&gt
+;string&lt;/em&gt;&quot; que la propiedad &lt;code&gt;.Text&lt;/code&gt; si no existe ningún controlador de eventos &quot;Event Handler&quot;, &lt;code&gt;OnGetText&lt;/code&g
+t;, pero de existir uno puede darse el caso de ser diferente, o quizás un descendiente en &lt;code&gt;TField&lt;/code&gt; que no sea el estándar podría ocasionar que fuera difer
+ente.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;Saludos y espero ayude.&lt;/p&gt;&#xA;&#xA;&lt;p&gt;P.D: Sobre si hay una razón para usar una u otra no sabría decirle con total certeza eso d
+ependería del uso que tenga previsto para el valor de retorno.&lt;/p&gt;&#xA;" OwnerUserId="24" LastEditorUserId="25" LastEditDate="2015-12-14T00:58:15.613" LastActivityDate="
+2015-12-14T00:58:15.613" CommentCount="0" /> </posts>
